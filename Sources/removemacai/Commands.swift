@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-let version = "0.2.0"
+let version = "0.2.1"
 
 enum Commands {
   /// How to undo, as the person ran us: the one-line installer passes its own
@@ -31,7 +31,9 @@ enum Commands {
       print("  " + Term.pad(feature.title, 40) + label)
     }
     print()
-    printModels()
+    if printModels() == 0 && Profile.installed().on && Models.available() {
+      print(Term.dim("  macOS removes deleted model files itself, so System Settings can count them for a while."))
+    }
     print()
     if isOff() {
       print(Term.green("Apple Intelligence is off.") + Term.dim(" Undo with: \(undo)"))
@@ -71,11 +73,16 @@ enum Commands {
       Term.fail("there is no feature called \"\(id)\". The names are listed by: removemacai features")
     }
     let sets = Catalog.setsToRemove(keeping: keep)
-    let modelsBefore = Models.available() ? Models.total(sets) : 0
+    let modelsKnown = Models.available()
+    let modelsBefore = modelsKnown ? Models.total(sets) : 0
     let profile = Profile.installed()
+    let unknownModels = "Apple's asset service did not answer, so the models on disk were not deleted."
 
     if profile.on && profile.kept == keep && modelsBefore == 0 {
-      print(Term.green("Apple Intelligence is already off") + " and its models are gone.")
+      print(Term.green("Apple Intelligence is already off") + (modelsKnown ? " and its models are gone." : "."))
+      print(modelsKnown
+        ? Term.dim("macOS removes deleted model files itself, so System Settings can count them for a while.")
+        : Term.yellow("!") + " " + unknownModels)
       print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
       return
     }
@@ -83,12 +90,14 @@ enum Commands {
     let on = featuresOn()
     print(profile.on ? "Apple Intelligence is off, but some models are back." : "Apple Intelligence is on.")
     print("  " + Term.pad("Features on", 20) + "\(on) of \(Catalog.features.count)")
-    print("  " + Term.pad("Models on disk", 20) + Term.size(modelsBefore))
+    print("  " + Term.pad("Models on disk", 20) + (modelsKnown ? Term.size(modelsBefore) : "unknown"))
     print()
     print("Turning it off will:")
     print("  · switch off Siri, Writing Tools, Genmoji, Image Playground, summaries and ChatGPT"
       + (keep.isEmpty ? "" : Term.dim(" (keeping " + keep.sorted().joined(separator: ", ") + ")")))
-    print("  · delete " + Term.bold(Term.size(modelsBefore)) + " of models and stop macOS downloading them again")
+    print(modelsKnown
+      ? "  · delete " + Term.bold(Term.size(modelsBefore)) + " of models and stop macOS downloading them again"
+      : "  · stop macOS downloading the models (Apple's asset service did not answer, so the ones on disk stay)")
     if !(profile.on && profile.kept == keep) {
       print("  · ask you to approve one profile in System Settings (macOS requires that click)")
     }
@@ -136,8 +145,9 @@ enum Commands {
     }
 
     // 2. The models go now that they cannot download again.
-    var freed: Int64 = 0
-    if modelsBefore > 0 && Models.available() {
+    if !modelsKnown {
+      print("  " + Term.yellow("!") + " " + unknownModels)
+    } else if modelsBefore > 0 {
       print(Term.bold("Step 2 of 2") + "  Delete the models")
       do {
         for (name, reason) in try Models.remove(sets) {
@@ -145,11 +155,12 @@ enum Commands {
         }
       } catch { Term.fail("\(error)") }
       _ = waitFor("deleting", { Models.total(sets) == 0 }, minutes: 0.5)
-      freed = max(0, modelsBefore - Models.total(sets))
+      let freed = max(0, modelsBefore - Models.total(sets))
       print("  " + Term.green("✓") + " Deleted " + Term.size(freed))
+      print("    " + Term.dim("macOS removes the files itself, so System Settings can count them under Apple Intelligence for a while."))
     }
     print()
-    print(Term.green("Done.") + " Apple Intelligence is off" + (freed > 0 ? " and " + Term.bold(Term.size(freed)) + " is free." : "."))
+    print(Term.green("Done.") + " Apple Intelligence is off.")
     print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
   }
 

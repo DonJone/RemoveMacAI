@@ -75,6 +75,9 @@ Yes. Dictation is a separate setting, and its speech models are not removed.
 **Do macOS updates undo the changes?**
 No. The profile, including the download block, persists across updates.
 
+**Storage settings still lists Apple Intelligence after the models were deleted.**
+Apple's asset service releases the models right away, but macOS deletes the files on its own schedule. Until then, System Settings > General > Storage keeps counting them under Apple Intelligence.
+
 **Why is a process named Siri still running?**
 In macOS 27 the Spotlight window runs as a process named Siri. Some system services also stay loaded; they are protected by System Integrity Protection.
 
