@@ -6,7 +6,7 @@
 
 Turn off Apple Intelligence on macOS 27 and remove its downloaded models.
 
-macOS 27 no longer has a single switch for Apple Intelligence, and its models stay on disk after the features are turned off. RemoveMacAI turns the features off, removes the models (about 12 GB) and prevents macOS from downloading them again. All changes can be reverted.
+macOS 27 no longer has a single switch for Apple Intelligence, and its models stay on disk after the features are turned off. RemoveMacAI turns the features off, removes the models and prevents macOS from downloading them again. All changes can be reverted.
 
 <p align="center">
   <img src="docs/terminal.gif" alt="RemoveMacAI turning off Apple Intelligence" width="840">
