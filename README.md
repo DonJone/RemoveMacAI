@@ -94,7 +94,7 @@ Run `removemacai revert`, then `brew uninstall removemacai` if it was installed 
 
 ## Acknowledgements
 
-The asset service interface and several of the settings keys were first documented by [pared](https://github.com/4evy/pared).
+RemoveMacAI is built on [pared](https://github.com/4evy/pared), a complete working tool by 4evy that first mapped the asset service, the model sets and several of the settings keys. Its license is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## License
 
