@@ -41,7 +41,7 @@ case "off", nil:
   let dryRun = flag("--dry-run")
   let yes = flag("--yes") || flag("-y")
   if let extra = args.first { Term.fail("unknown option \(extra)") }
-  Commands.off(keep: keep, dryRun: dryRun, yes: yes)
+  exit(Commands.off(keep: keep, dryRun: dryRun, yes: yes) ? 0 : 1)
 case "revert", "on":
   Commands.revert()
 case "features":

@@ -48,6 +48,8 @@ RemoveMacAI shows the current state and asks for confirmation. It then opens Sys
 | `removemacai revert` | Undo all changes |
 | `removemacai features` | List the feature names accepted by `--keep` |
 
+Model sizes that the asset service cannot report are shown as `unknown`. If model removal fails or cannot be confirmed, `off` exits with status 1 and leaves the configuration profile active. Check the reported warnings and run `removemacai status` before trying again.
+
 To revert with the one-line installer:
 
 ```sh

@@ -53,7 +53,15 @@ enum Models {
     return !items.isEmpty
   }
 
-  static func total(_ sets: [String]) -> Int64 { sets.compactMap(bytes).reduce(0, +) }
+  /// A total is only known when every selected set answered.
+  static func total(_ sets: [String], read: (String) -> Int64? = bytes) -> Int64? {
+    var total: Int64 = 0
+    for set in sets {
+      guard let bytes = read(set) else { return nil }
+      total += bytes
+    }
+    return total
+  }
 
   /// Splits the sets into those whose asset type still matches the catalog and
   /// those to leave alone, with the reason. Refuses anything outside the catalog.
@@ -104,7 +112,24 @@ enum Models {
 
 /// Whether a feature is off, and whether our profile locks it off.
 enum FeatureState: Equatable {
-  case lockedOff, off, on
+  case lockedOff, off, on, unknown
+
+  var isOff: Bool { self == .lockedOff || self == .off }
+}
+
+/// The final verification snapshot, kept separate from reset acknowledgements.
+struct ModelRemovalResult {
+  let before: Int64?
+  let after: Int64?
+  let failures: [(String, String)]
+  let verified: Bool
+
+  var complete: Bool { failures.isEmpty && verified && after == 0 }
+
+  var deletedBytes: Int64? {
+    guard let before, let after else { return nil }
+    return max(0, before - after)
+  }
 }
 
 enum Settings {
@@ -121,9 +146,15 @@ enum Settings {
     }
     // A feature that is only models is on while its models are on disk.
     if feature.restrictions.isEmpty && feature.preferences.isEmpty {
-      return feature.modelSets.contains { (Models.bytes($0) ?? 0) > 0 } ? .on : .off
+      return modelState(feature.modelSets)
     }
     return .on
+  }
+
+  static func modelState(_ sets: [String], read: (String) -> Int64? = Models.bytes) -> FeatureState {
+    let readings = sets.map(read)
+    if readings.contains(where: { ($0 ?? 0) > 0 }) { return .on }
+    return readings.allSatisfy { $0 == 0 } ? .off : .unknown
   }
 
   /// Features with no switch of their own (only models) count as locked off

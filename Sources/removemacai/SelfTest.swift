@@ -41,6 +41,102 @@ func selfTest() -> Bool {
   ]])
   check(parsed == ["a": 150, "b": 0], "the inventory counts only assets that are on disk")
 
+  let sampleSets = ["first", "second"]
+  check(Models.total(sampleSets, read: { ["first": Int64(5), "second": 7][$0] }) == 12,
+    "known model sizes are added")
+  check(Models.total(sampleSets, read: { _ in 0 }) == 0,
+    "known zero sizes stay zero")
+  check(Models.total(sampleSets, read: { _ in nil }) == nil,
+    "failed size queries do not become zero")
+  check(Models.total(sampleSets, read: { $0 == "first" ? 0 : nil }) == nil,
+    "one unknown size keeps a zero total unknown")
+  check(Models.total(sampleSets, read: { $0 == "first" ? 5 : nil }) == nil,
+    "one unknown size does not produce a partial total")
+  var emptyReads = 0
+  check(Models.total([], read: { _ in emptyReads += 1; return nil }) == 0 && emptyReads == 0,
+    "an empty total needs no asset queries")
+
+  check(Settings.modelState(sampleSets, read: { _ in nil }) == .unknown,
+    "unavailable model sizes produce an unknown feature state")
+  check(Settings.modelState(sampleSets, read: { $0 == "first" ? 0 : nil }) == .unknown,
+    "zero and unknown sizes do not turn a feature off")
+  check(Settings.modelState(sampleSets, read: { $0 == "first" ? nil : 5 }) == .on,
+    "a known downloaded model keeps a feature on")
+  check(Settings.modelState(sampleSets, read: { _ in 0 }) == .off,
+    "a model-only feature is off when every size is zero")
+  check(!FeatureState.unknown.isOff && !FeatureState.on.isOff
+    && FeatureState.off.isOff && FeatureState.lockedOff.isOff,
+    "unknown feature states do not count as off")
+  check(Commands.modelSize(nil).contains("unknown") && Commands.modelSize(0).contains("none")
+    && Commands.modelSize(1024).contains(Term.size(1024)),
+    "model size labels distinguish unknown, empty and downloaded")
+
+  // Every removal dependency below is fake; no asset service is contacted.
+  func simulatedRemoval(before: Int64?, after: Int64?, failures: [(String, String)] = [],
+    waitExpires: Bool = false) throws -> ModelRemovalResult
+  {
+    try Commands.removeModels(sampleSets, before: before, remove: { _ in failures },
+      total: { _ in after }, wait: { condition in
+        let zero = condition()
+        return !waitExpires && zero
+      })
+  }
+  do {
+    let unknownBefore = try simulatedRemoval(before: nil, after: 0)
+    check(unknownBefore.complete && unknownBefore.deletedBytes == nil,
+      "removal can be verified without inventing the initial size")
+    let unknownAfter = try simulatedRemoval(before: 100, after: nil)
+    check(!unknownAfter.complete && unknownAfter.after == nil && unknownAfter.deletedBytes == nil,
+      "failed verification does not claim removal or freed space")
+    let complete = try simulatedRemoval(before: 100, after: 0)
+    check(complete.complete && complete.deletedBytes == 100,
+      "verified zero reports the measured removal")
+
+    var verificationReads = 0
+    let transient = try Commands.removeModels(sampleSets, before: 100, remove: { _ in [] },
+      total: { _ in verificationReads += 1; return verificationReads == 1 ? nil : 0 },
+      wait: { condition in
+        if condition() { return true }
+        return condition()
+      })
+    check(transient.complete && transient.deletedBytes == 100 && verificationReads == 2,
+      "verification waits through an unknown reading and keeps the final snapshot")
+
+    let partial = try simulatedRemoval(before: 100, after: 40,
+      failures: [("second", "reset rejected")])
+    check(!partial.complete && partial.deletedBytes == 60 && partial.failures.count == 1,
+      "partial reset failures preserve measured progress without claiming success")
+    for reason in ["reset rejected", "no answer in 120 seconds"] {
+      let resetFailure = try simulatedRemoval(before: 100, after: 0, failures: [("second", reason)])
+      check(!resetFailure.complete && resetFailure.verified,
+        "a reset failure stays incomplete after zero is observed: \(reason)")
+    }
+    let timedOut = try simulatedRemoval(before: 100, after: 40, waitExpires: true)
+    check(!timedOut.complete && !timedOut.verified && timedOut.deletedBytes == 60,
+      "verification timeout reports incomplete removal with known progress")
+    let unverifiedZero = try simulatedRemoval(before: 100, after: 0, waitExpires: true)
+    check(!unverifiedZero.complete && !unverifiedZero.verified,
+      "a failed wait cannot become a successful removal")
+
+    for (sets, before) in [([], nil), (sampleSets, Int64(0))] as [([String], Int64?)] {
+      var calls = 0
+      let skipped = try Commands.removeModels(sets, before: before,
+        remove: { _ in calls += 1; return [] }, total: { _ in calls += 1; return nil },
+        wait: { _ in calls += 1; return false })
+      check(skipped.complete && skipped.after == 0 && calls == 0,
+        "empty selections and known zero sizes need no removal or verification")
+    }
+    var readsAfterThrow = 0
+    check(throwsFailure {
+      _ = try Commands.removeModels(sampleSets, before: 100,
+        remove: { _ in throw Failure("fake reset failure") },
+        total: { _ in readsAfterThrow += 1; return 0 },
+        wait: { _ in readsAfterThrow += 1; return true })
+    } && readsAfterThrow == 0, "throwing resets propagate before verification")
+  } catch {
+    check(false, "model removal reporting works with fake dependencies: \(error)")
+  }
+
   do {
     let plist = try PropertyListSerialization.propertyList(from: Profile.data(keeping: []), format: nil)
       as! [String: Any]

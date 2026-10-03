@@ -27,11 +27,12 @@ enum Commands {
       case .lockedOff: label = Term.green("off") + Term.dim(" (locked)")
       case .off: label = Term.green("off")
       case .on: label = Term.yellow("on")
+      case .unknown: label = Term.yellow("unknown")
       }
       print("  " + Term.pad(feature.title, 40) + label)
     }
     print()
-    if printModels() == 0 && Profile.installed().on && Models.available() {
+    if printModels() == 0 && Profile.installed().on {
       print(Term.dim("  macOS removes deleted model files itself, so System Settings can count them for a while."))
     }
     print()
@@ -43,61 +44,71 @@ enum Commands {
   }
 
   @discardableResult
-  static func printModels() -> Int64 {
+  static func printModels() -> Int64? {
     print(Term.bold("Models on disk"))
     guard Models.available() else {
       print(Term.dim("  Apple's asset service did not answer, so the sizes are unknown."))
-      return 0
+      return nil
     }
-    var total: Int64 = 0
+    var readings: [String: Int64] = [:]
     for set in Catalog.modelSets {
-      let bytes = Models.bytes(set.name) ?? 0
-      total += bytes
-      print("  " + Term.pad(set.title, 40) + (bytes > 0 ? Term.yellow(Term.size(bytes)) : Term.dim("none")))
+      let bytes = Models.bytes(set.name)
+      readings[set.name] = bytes
+      print("  " + Term.pad(set.title, 40) + modelSize(bytes))
     }
-    print("  " + Term.pad("Total", 40) + Term.bold(Term.size(total)))
+    let total = Models.total(Catalog.modelSets.map(\.name), read: { readings[$0] })
+    print("  " + Term.pad("Total", 40) + (total.map { Term.bold(Term.size($0)) } ?? Term.yellow("unknown")))
     return total
+  }
+
+  static func modelSize(_ bytes: Int64?) -> String {
+    guard let bytes else { return Term.yellow("unknown") }
+    return bytes > 0 ? Term.yellow(Term.size(bytes)) : Term.dim("none")
   }
 
   static func featuresOn() -> Int { Catalog.features.filter { Settings.state($0) == .on }.count }
 
   static func isOff() -> Bool {
-    Profile.installed().on && featuresOn() == 0
+    Profile.installed().on && Catalog.features.allSatisfy { Settings.state($0).isOff }
   }
 
   // MARK: off
 
-  static func off(keep: Set<String>, dryRun: Bool, yes: Bool) {
+  static func off(keep: Set<String>, dryRun: Bool, yes: Bool) -> Bool {
     header()
     for id in keep where Catalog.feature(id) == nil {
       Term.fail("there is no feature called \"\(id)\". The names are listed by: removemacai features")
     }
     let sets = Catalog.setsToRemove(keeping: keep)
-    let modelsKnown = Models.available()
-    let modelsBefore = modelsKnown ? Models.total(sets) : 0
+    let modelsAvailable = sets.isEmpty || Models.available()
+    let modelsBefore: Int64? = sets.isEmpty ? 0 : (modelsAvailable ? Models.total(sets) : nil)
     let profile = Profile.installed()
-    let unknownModels = "Apple's asset service did not answer, so the models on disk were not deleted."
+    let offSummary = keep.isEmpty ? "Apple Intelligence is off." : "The selected features are off."
 
     if profile.on && profile.kept == keep && modelsBefore == 0 {
-      print(Term.green("Apple Intelligence is already off") + (modelsKnown ? " and its models are gone." : "."))
-      print(modelsKnown
-        ? Term.dim("macOS removes deleted model files itself, so System Settings can count them for a while.")
-        : Term.yellow("!") + " " + unknownModels)
+      print(Term.green(offSummary) + " No models remain in the sets selected for removal.")
+      if !sets.isEmpty {
+        print(Term.dim("macOS removes deleted model files itself, so System Settings can count them for a while."))
+      }
       print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
-      return
+      return true
     }
 
     let on = featuresOn()
-    print(profile.on ? "Apple Intelligence is off, but some models are back." : "Apple Intelligence is on.")
+    print(profile.on ? "The profile is installed. Checking the selected models." : "Checking Apple Intelligence and its models.")
     print("  " + Term.pad("Features on", 20) + "\(on) of \(Catalog.features.count)")
-    print("  " + Term.pad("Models on disk", 20) + (modelsKnown ? Term.size(modelsBefore) : "unknown"))
+    print("  " + Term.pad("Models on disk", 20) + (modelsBefore.map(Term.size) ?? "unknown"))
     print()
     print("Turning it off will:")
     print("  · switch off Siri, Writing Tools, Genmoji, Image Playground, summaries and ChatGPT"
       + (keep.isEmpty ? "" : Term.dim(" (keeping " + keep.sorted().joined(separator: ", ") + ")")))
-    print(modelsKnown
-      ? "  · delete " + Term.bold(Term.size(modelsBefore)) + " of models and stop macOS downloading them again"
-      : "  · stop macOS downloading the models (Apple's asset service did not answer, so the ones on disk stay)")
+    if let modelsBefore {
+      print("  · delete " + Term.bold(Term.size(modelsBefore)) + " of models and stop macOS downloading them again")
+    } else if modelsAvailable {
+      print("  · request model removal and block downloads (the current model sizes are unknown)")
+    } else {
+      print("  · stop model downloads (Apple's asset service is unavailable, so removal cannot be requested)")
+    }
     if !(profile.on && profile.kept == keep) {
       print("  · ask you to approve one profile in System Settings (macOS requires that click)")
     }
@@ -115,18 +126,18 @@ enum Commands {
       print("Profile it would install:  " + path.path)
       var deleting = sets
       var staying: [(String, String)] = []
-      if modelsKnown, let split = try? Models.matching(sets) { (deleting, staying) = (split.matched, split.skipped) }
+      if modelsAvailable, let split = try? Models.matching(sets) { (deleting, staying) = (split.matched, split.skipped) }
       print("Models it would delete:    " + (deleting.isEmpty ? "none" : deleting.joined(separator: ", ")))
       for (name, reason) in staying {
         print("  " + Term.yellow("!") + " \(Catalog.modelSet(name)?.title ?? name) would stay: " + Term.dim(reason))
       }
-      return
+      return true
     }
     if !yes {
       guard isatty(STDIN_FILENO) == 1 else { Term.fail("run it in a terminal, or add --yes") }
       guard Term.ask("Turn Apple Intelligence off?") else {
         print("Nothing changed.")
-        return
+        return true
       }
       print()
     }
@@ -145,32 +156,80 @@ enum Commands {
       guard waitFor("waiting for you in System Settings", { let p = Profile.installed(); return p.on && p.kept == keep })
       else {
         print("  The profile is not installed yet. Run this again once it is, and it picks up from here.")
-        exit(1)
+        return false
       }
       print("  " + Term.green("✓") + " Profile installed")
     }
 
     // 2. The models go now that they cannot download again.
-    if !modelsKnown {
-      print("  " + Term.yellow("!") + " " + unknownModels)
-    } else if modelsBefore > 0 {
+    // Approval can take several minutes; use a fresh snapshot before deleting.
+    let removalAvailable = sets.isEmpty || Models.available()
+    var removing = sets
+    var staying: [(String, String)] = []
+    if removalAvailable, !sets.isEmpty {
+      do { (removing, staying) = try Models.matching(sets) } catch { Term.fail("\(error)") }
+    }
+    for (name, reason) in staying {
+      print("  " + Term.yellow("!") + " \(Catalog.modelSet(name)?.title ?? name) stayed: " + Term.dim(reason))
+    }
+    let removalBefore: Int64? = removing.isEmpty ? 0 : (removalAvailable ? Models.total(removing) : nil)
+    var removalComplete = true
+    if !removalAvailable {
+      print("  " + Term.yellow("!") + " Apple's asset service is unavailable, so model removal could not be requested.")
+      removalComplete = false
+    } else if removalBefore != 0 {
       print(Term.bold("Step 2 of 2") + "  Delete the models")
-      var stayed: Set<String> = []
       do {
-        for (name, reason) in try Models.remove(sets) {
-          stayed.insert(name)
-          print("  " + Term.yellow("!") + " \(Catalog.modelSet(name)?.title ?? name) stayed: " + Term.dim(reason))
+        let result = try removeModels(removing, before: removalBefore)
+        for (name, reason) in result.failures {
+          print("  " + Term.yellow("!") + " Removal request for \(Catalog.modelSet(name)?.title ?? name): " + Term.dim(reason))
+        }
+        removalComplete = result.complete
+        if let deleted = result.deletedBytes {
+          print("  " + (result.complete ? Term.green("✓") : Term.yellow("!")) + " Deleted " + Term.size(deleted))
+        } else {
+          print("  " + Term.dim("The amount deleted is unknown because the asset service did not report all sizes."))
+        }
+        if result.after == nil {
+          print("  " + Term.yellow("!") + " The remaining model sizes are unknown; removal could not be confirmed.")
+        } else if let remaining = result.after, remaining > 0 {
+          print("  " + Term.yellow("!") + " " + Term.size(remaining) + " of selected models remain.")
+        }
+        if !result.verified {
+          print("  " + Term.yellow("!") + " Timed out waiting to confirm that the selected models were removed.")
+        }
+        if result.complete {
+          print("    " + Term.dim("macOS removes the files itself, so System Settings can count them under Apple Intelligence for a while."))
         }
       } catch { Term.fail("\(error)") }
-      let removing = sets.filter { !stayed.contains($0) }
-      _ = waitFor("deleting", { Models.total(removing) == 0 }, minutes: 0.5)
-      let freed = max(0, modelsBefore - Models.total(sets))
-      print("  " + Term.green("✓") + " Deleted " + Term.size(freed))
-      print("    " + Term.dim("macOS removes the files itself, so System Settings can count them under Apple Intelligence for a while."))
     }
     print()
-    print(Term.green("Done.") + " Apple Intelligence is off.")
+    if removalComplete {
+      print(Term.green("Done.") + " " + offSummary)
+    } else {
+      print(Term.yellow("Incomplete.") + " " + offSummary + " The profile remains installed; model removal is incomplete.")
+    }
     print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
+    return removalComplete
+  }
+
+  /// Injectable operations let self-tests verify failures without contacting the asset service.
+  static func removeModels(
+    _ sets: [String], before: Int64?,
+    remove: ([String]) throws -> [(String, String)] = { try Models.remove($0) },
+    total: @escaping ([String]) -> Int64? = { Models.total($0) },
+    wait: (() -> Bool) -> Bool = { waitFor("deleting", $0, minutes: 0.5) }
+  ) throws -> ModelRemovalResult {
+    if sets.isEmpty || before == 0 {
+      return ModelRemovalResult(before: before, after: 0, failures: [], verified: true)
+    }
+    let failures = try remove(sets)
+    var after: Int64?
+    let verified = wait {
+      after = total(sets)
+      return after == 0
+    }
+    return ModelRemovalResult(before: before, after: after, failures: failures, verified: verified)
   }
 
   // MARK: revert
