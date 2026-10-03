@@ -7,11 +7,50 @@ enum Models {
     UAFLoad() && UAFAssetType(Catalog.foundationModels) != nil
   }
 
-  /// Bytes on disk for a set, or nil when the service does not say.
+  /// Bytes on disk for a set, or nil when the service does not say. The
+  /// inventory comes first: the per-set status can report 0 for installed sets.
   static func bytes(_ set: String) -> Int64? {
+    if let model = Catalog.modelSet(set), let inventory = inventory() {
+      return inventory[model.assetType] ?? 0
+    }
     var error: NSError?
     let n = UAFDownloadedBytes(set, &error)
     return n >= 0 ? n : nil
+  }
+
+  /// Bytes of present assets by asset type, from the asset service's inventory.
+  static func parseInventory(_ info: [String: Any]) -> [String: Int64] {
+    var bytes: [String: Int64] = [:]
+    for asset in info["SystemAssets"] as? [[String: Any]] ?? [] {
+      guard asset["isPresentOnDevice"] as? Bool == true,
+        let meta = asset["metadata"] as? [String: Any],
+        let type = meta["AssetType"] as? String
+      else { continue }
+      let size = meta["com.apple.UnifiedAssetFramework.UnarchivedSize"] ?? meta["_UnarchivedSize"]
+      bytes[type, default: 0] += Int64("\(size ?? 0)") ?? 0
+    }
+    return bytes
+  }
+
+  private static var cached: (at: Date, value: [String: Int64]?)?
+
+  static func inventory() -> [String: Int64]? {
+    if let c = cached, Date().timeIntervalSince(c.at) < 1 { return c.value }
+    var error: NSError?
+    let value = UAFLoad() ? UAFInformation(&error).map { parseInventory($0 as? [String: Any] ?? [:]) } : nil
+    cached = (Date(), value)
+    return value
+  }
+
+  /// Whether anything of the set may still be on disk: tracked bytes, or files
+  /// in its asset folder. A folder macOS will not let us read counts as present.
+  static func present(_ set: String) -> Bool {
+    if (bytes(set) ?? 0) > 0 { return true }
+    guard let model = Catalog.modelSet(set) else { return false }
+    let path = "/System/Library/AssetsV2/" + model.assetType.replacingOccurrences(of: ".", with: "_")
+    guard FileManager.default.fileExists(atPath: path) else { return false }
+    guard let items = try? FileManager.default.contentsOfDirectory(atPath: path) else { return true }
+    return !items.isEmpty
   }
 
   static func total(_ sets: [String]) -> Int64 { sets.compactMap(bytes).reduce(0, +) }
@@ -30,7 +69,7 @@ enum Models {
       }
     }
     var failed: [(String, String)] = []
-    for name in sets where (bytes(name) ?? 1) > 0 {
+    for name in sets where present(name) {
       let done = DispatchSemaphore(value: 0)
       var failure: NSError?
       UAFResetAssetSets([name]) { error in

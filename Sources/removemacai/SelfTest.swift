@@ -25,6 +25,13 @@ func selfTest() -> Bool {
   check(Set(Catalog.features.map(\.id)).count == Catalog.features.count, "feature names are unique")
   check(throwsFailure { try Models.remove([]) }, "an empty removal is refused before anything is sent")
   check(throwsFailure { try Models.remove(["com.apple.something.else"]) }, "an unknown set is refused")
+  let parsed = Models.parseInventory(["SystemAssets": [
+    ["isPresentOnDevice": true, "metadata": ["AssetType": "a", "_UnarchivedSize": 100]],
+    ["isPresentOnDevice": true, "metadata": ["AssetType": "a", "com.apple.UnifiedAssetFramework.UnarchivedSize": "50"]],
+    ["isPresentOnDevice": false, "metadata": ["AssetType": "a", "_UnarchivedSize": 999]],
+    ["isPresentOnDevice": true, "metadata": ["AssetType": "b"]],
+  ]])
+  check(parsed == ["a": 150, "b": 0], "the inventory counts only assets that are on disk")
 
   do {
     let plist = try PropertyListSerialization.propertyList(from: Profile.data(keeping: []), format: nil)
