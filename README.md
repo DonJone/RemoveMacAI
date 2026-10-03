@@ -92,7 +92,12 @@ The features listed above, apps that use Apple's on-device models (the Foundatio
 
 ## Requirements
 
-macOS 27 on Apple silicon.
+Apple silicon.
+
+| macOS | Status |
+|---|---|
+| 27 | Supported, tested on 27.0. On 27.0.1, use 0.2.3 or later. |
+| 26 and earlier | Not supported |
 
 ## Uninstall
 
