@@ -28,7 +28,7 @@ func option(_ name: String) -> String? {
   return value
 }
 
-guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else {
+guard args.first == "selftest" || ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else {
   Term.fail("RemoveMacAI needs macOS 26 or newer")
 }
 
