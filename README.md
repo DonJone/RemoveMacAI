@@ -22,6 +22,12 @@ curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.s
 
 The script downloads the latest release, verifies its SHA-256 checksum and runs it from a temporary directory. Nothing is installed.
 
+Every release is built from its tag by GitHub Actions and carries a build provenance attestation. To check that a download came from this repository's source:
+
+```sh
+gh attestation verify removemacai-darwin-arm64.tar.gz -R omlahore/RemoveMacAI
+```
+
 With Homebrew:
 
 ```sh
