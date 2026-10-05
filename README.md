@@ -109,6 +109,14 @@ Run `removemacai revert`, then `brew uninstall removemacai` if it was installed 
 
 RemoveMacAI is built on [pared](https://github.com/4evy/pared), a complete working tool by 4evy that first mapped the asset service, the model sets and several of the settings keys. Its license is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+## Support
+
+If RemoveMacAI is useful to you, you can [sponsor it on GitHub](https://github.com/sponsors/omlahore).
+
+## Author
+
+I'm [Om Lahore](https://github.com/omlahore) and I'm open to new roles. You can reach me on [LinkedIn](https://linkedin.com/in/om-lahorey) or at omlahorey@gmail.com.
+
 ## License
 
 [MIT](LICENSE)
