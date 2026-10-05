@@ -37,6 +37,14 @@ removemacai
 
 RemoveMacAI shows the current state and asks for confirmation. It then opens System Settings to install its configuration profile, which macOS requires the user to approve, and removes the models.
 
+To leave some features on, name them with `--keep`. For example, to turn everything off except the Photos features:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash -s -- off --keep spatial-photos,photos-clean-up
+```
+
+`removemacai features` lists the names.
+
 ## Usage
 
 | Command | Description |
