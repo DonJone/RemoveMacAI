@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-let version = "0.2.3"
+let version = "0.2.4"
 
 enum Commands {
   /// How to undo, as the person ran us: the one-line installer passes its own
