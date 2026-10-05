@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.5
+
+- `off` no longer counts a model set the asset service can't size as 0. Those sizes show as unknown, and when removal fails or can't be confirmed, `off` says the run is incomplete, leaves the profile in place and exits with status 1. Contributed by Daniel Traynor in #1.
+- `off --keep` says when a kept feature is switched off. `--keep` stops the profile from locking a feature, but it doesn't turn the feature back on. Reported by J-Liu in #8.
+
 ## 0.2.4
 
 - `off` no longer gives up on every model when one set doesn't match what RemoveMacAI expects. On macOS 26.5 the Spatial Photos set failed the check, so nothing was removed. That set is now left alone and named, and the rest are removed. Reported by halilmertogut in #4.
