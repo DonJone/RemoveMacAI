@@ -55,21 +55,36 @@ enum Models {
 
   static func total(_ sets: [String]) -> Int64 { sets.compactMap(bytes).reduce(0, +) }
 
+  /// Splits the sets into those whose asset type still matches the catalog and
+  /// those to leave alone, with the reason. Refuses anything outside the catalog.
+  static func matching(_ sets: [String], assetType: (String) -> String? = UAFAssetType) throws
+    -> (matched: [String], skipped: [(String, String)])
+  {
+    var matched: [String] = []
+    var skipped: [(String, String)] = []
+    for name in sets {
+      guard let known = Catalog.modelSet(name) else { throw Failure("unknown model set \(name)") }
+      let type = assetType(name)
+      if type == known.assetType {
+        matched.append(name)
+      } else if let type {
+        skipped.append((name, "its asset type is \(type) on this version of macOS, so it was left alone"))
+      } else {
+        skipped.append((name, "not found on this version of macOS, so it was left alone"))
+      }
+    }
+    return (matched, skipped)
+  }
+
   /// Removes the downloaded models of these sets, one set per request, so one
   /// the service rejects does not stop the rest. Refuses anything outside the
-  /// catalog, and any set whose asset type no longer matches it. Returns the
-  /// sets that failed, with the reason.
+  /// catalog, and leaves alone any set whose asset type no longer matches it.
+  /// Returns the sets that stayed, with the reason.
   @discardableResult
   static func remove(_ sets: [String], timeout: TimeInterval = 120) throws -> [(String, String)] {
     guard !sets.isEmpty else { throw Failure("no model sets selected") }
-    for name in sets {
-      guard let known = Catalog.modelSet(name) else { throw Failure("unknown model set \(name)") }
-      guard UAFAssetType(name) == known.assetType else {
-        throw Failure("\(name) no longer matches this version of RemoveMacAI; nothing removed")
-      }
-    }
-    var failed: [(String, String)] = []
-    for name in sets where present(name) {
+    var (matched, failed) = try matching(sets)
+    for name in matched where present(name) {
       let done = DispatchSemaphore(value: 0)
       var failure: NSError?
       UAFResetAssetSets([name]) { error in

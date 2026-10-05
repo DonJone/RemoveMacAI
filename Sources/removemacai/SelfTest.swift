@@ -25,6 +25,14 @@ func selfTest() -> Bool {
   check(Set(Catalog.features.map(\.id)).count == Catalog.features.count, "feature names are unique")
   check(throwsFailure { try Models.remove([]) }, "an empty removal is refused before anything is sent")
   check(throwsFailure { try Models.remove(["com.apple.something.else"]) }, "an unknown set is refused")
+  let all = Catalog.modelSets.map(\.name)
+  let types = Dictionary(uniqueKeysWithValues: Catalog.modelSets.map { ($0.name, $0.assetType) })
+  let split = try? Models.matching(all) { $0 == Catalog.spatialModels ? "com.apple.something.else" : types[$0] }
+  check(split?.matched == all.filter { $0 != Catalog.spatialModels } && split?.skipped.map { $0.0 } == [Catalog.spatialModels],
+    "a set this macOS describes differently is left alone and the rest still go")
+  let missing = try? Models.matching(all) { _ in nil }
+  check(missing?.matched.isEmpty == true && missing?.skipped.count == all.count,
+    "sets this macOS does not have are left alone")
   let parsed = Models.parseInventory(["SystemAssets": [
     ["isPresentOnDevice": true, "metadata": ["AssetType": "a", "_UnarchivedSize": 100]],
     ["isPresentOnDevice": true, "metadata": ["AssetType": "a", "com.apple.UnifiedAssetFramework.UnarchivedSize": "50"]],

@@ -113,7 +113,13 @@ enum Commands {
       try? data.write(to: path)
       print(Term.bold("Dry run, nothing changed."))
       print("Profile it would install:  " + path.path)
-      print("Models it would delete:    " + (sets.isEmpty ? "none" : sets.joined(separator: ", ")))
+      var deleting = sets
+      var staying: [(String, String)] = []
+      if modelsKnown, let split = try? Models.matching(sets) { (deleting, staying) = (split.matched, split.skipped) }
+      print("Models it would delete:    " + (deleting.isEmpty ? "none" : deleting.joined(separator: ", ")))
+      for (name, reason) in staying {
+        print("  " + Term.yellow("!") + " \(Catalog.modelSet(name)?.title ?? name) would stay: " + Term.dim(reason))
+      }
       return
     }
     if !yes {
@@ -149,12 +155,15 @@ enum Commands {
       print("  " + Term.yellow("!") + " " + unknownModels)
     } else if modelsBefore > 0 {
       print(Term.bold("Step 2 of 2") + "  Delete the models")
+      var stayed: Set<String> = []
       do {
         for (name, reason) in try Models.remove(sets) {
+          stayed.insert(name)
           print("  " + Term.yellow("!") + " \(Catalog.modelSet(name)?.title ?? name) stayed: " + Term.dim(reason))
         }
       } catch { Term.fail("\(error)") }
-      _ = waitFor("deleting", { Models.total(sets) == 0 }, minutes: 0.5)
+      let removing = sets.filter { !stayed.contains($0) }
+      _ = waitFor("deleting", { Models.total(removing) == 0 }, minutes: 0.5)
       let freed = max(0, modelsBefore - Models.total(sets))
       print("  " + Term.green("✓") + " Deleted " + Term.size(freed))
       print("    " + Term.dim("macOS removes the files itself, so System Settings can count them under Apple Intelligence for a while."))
