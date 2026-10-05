@@ -43,7 +43,7 @@ RemoveMacAI shows the current state and asks for confirmation. It then opens Sys
 |---|---|
 | `removemacai` | Show the current state, then turn Apple Intelligence off |
 | `removemacai status` | Show each feature and the size of the models on disk |
-| `removemacai off --keep <features>` | Leave the listed features on |
+| `removemacai off --keep <features>` | Leave the listed features alone (one that is already off stays off until you turn it on) |
 | `removemacai off --dry-run` | Show the changes without applying them |
 | `removemacai revert` | Undo all changes |
 | `removemacai features` | List the feature names accepted by `--keep` |

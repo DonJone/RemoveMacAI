@@ -90,6 +90,7 @@ enum Commands {
       if !sets.isEmpty {
         print(Term.dim("macOS removes deleted model files itself, so System Settings can count them for a while."))
       }
+      warnKeptButOff(keep)
       print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
       return true
     }
@@ -209,8 +210,15 @@ enum Commands {
     } else {
       print(Term.yellow("Incomplete.") + " " + offSummary + " The profile remains installed; model removal is incomplete.")
     }
+    warnKeptButOff(keep)
     print(Term.dim("Check it with: removemacai status    Undo with: \(undo)"))
     return removalComplete
+  }
+
+  static func warnKeptButOff(_ keep: Set<String>) {
+    for feature in Catalog.features where keep.contains(feature.id) && Settings.state(feature) == .off {
+      print(Term.yellow("!") + " \(feature.title) is kept, but it is switched off. Turn it on in System Settings.")
+    }
   }
 
   /// Injectable operations let self-tests verify failures without contacting the asset service.
