@@ -19,7 +19,7 @@ if [ "$(uname -s)" != "Darwin" ]; then
   echo "RemoveMacAI is for macOS." >&2
   exit 1
 fi
-if [ "$(uname -m)" != "arm64" ]; then
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" != "1" ]; then
   echo "Apple Intelligence only runs on Apple silicon Macs, so there is nothing to remove here." >&2
   exit 1
 fi
