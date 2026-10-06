@@ -218,7 +218,7 @@
     <div class="hero">
       <img class="icon" src="screens/icon.png" alt="RemoveMacAI app icon" width="112" height="112">
       <h1>Debloat your Mac.</h1>
-      <p class="lede">Turn off Apple Intelligence and delete its models. Stop the analytics, the ads and the pop-ups, and get disk space back. You see every change before it happens, and you can undo any of it.</p>
+      <p class="lede">RemoveMacAI turns off Apple Intelligence and deletes its models. It also switches off Mac Analytics and personalized ads, fixes small things like the wallpaper click that hides every window, and clears out old installers and caches. You see each change before it happens and can undo it later.</p>
       <p class="credit">Apple Intelligence removal builds on <a href="https://github.com/4evy/pared">pared</a> by 4evy.</p>
       <div class="ctas">
         <a class="button" href="https://github.com/omlahore/RemoveMacAI/releases/latest/download/RemoveMacAI.zip">
@@ -231,13 +231,13 @@
         </a>
       </div>
       <div class="terminal">
-        <p class="label">Or install it from Terminal</p>
+        <p class="label">Or from Terminal:</p>
         <div class="cmd">
           <code>curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash -s app</code>
           <button class="copy" type="button">Copy</button>
         </div>
       </div>
-      <p class="meta">Free and open source. macOS 27 on Apple silicon.</p>
+      <p class="meta">Free and open source. Needs macOS 27 and an Apple silicon Mac.</p>
     </div>
 
     <figure class="shot">
@@ -258,9 +258,8 @@
     <section id="what">
       <div class="board-wrap">
         <div>
-          <p class="kicker">Switched off</p>
-          <h2>Everything you never asked for.</h2>
-          <p class="intro">macOS 27 has no single switch for Apple Intelligence, and its models stay on disk after you turn the features off. RemoveMacAI turns each feature off, deletes the models and stops macOS downloading them again, then goes after the analytics, the ads and the pop-ups. Keep anything you use.</p>
+          <h2>What it turns off</h2>
+          <p class="intro">macOS 27 has no single switch for Apple Intelligence, and turning the features off leaves the models on disk. RemoveMacAI switches each feature off, deletes the models and blocks macOS from downloading them again. If you use one of them, say Writing Tools, keep it on and its models stay.</p>
           <p class="count"><b id="count">0</b> of 12 switched off</p>
         </div>
         <div class="board" id="board" aria-label="Features RemoveMacAI switches off">
@@ -281,24 +280,23 @@
     </section>
 
     <section>
-      <p class="kicker">And the rest</p>
-      <h2>40 tweaks, each explained.</h2>
-      <p class="intro">Start from a preset or pick single settings. Each one says what it does and what stops working, if anything.</p>
+      <h2>All 40 settings</h2>
+      <p class="intro">Start from one of the two presets or go through the settings one at a time. Each says what it changes and what you lose, which for most of them is nothing.</p>
       <div class="groups">
         <div><h3>Privacy</h3><p>Mac Analytics, personalized ads, Improve Siri and Dictation, Improve Search, Spotlight internet results, Look Up and Safari suggestions, Game Center.</p></div>
         <div><h3>Annoyances</h3><p>Clicking the wallpaper hiding every window, desktop widgets, the play key opening Music, iPhone Mirroring.</p></div>
-        <div><h3>Apple apps</h3><p>The Music app without the Apple Music store, Books without the Book Store, and the Apple apps you never open taken out of the Dock.</p></div>
-        <div><h3>Finder</h3><p>File extensions, hidden files, the path bar, folders first, no .DS_Store files on network drives, the Trash emptied after 30 days.</p></div>
-        <div><h3>Dock and windows</h3><p>No recent apps, no auto-hide delay, no bouncing icons, no window animations, no gaps between tiled windows.</p></div>
-        <div><h3>Typing</h3><p>Autocorrect, smart quotes and dashes, the double-space period, automatic capitals, the accent menu on held keys.</p></div>
-        <div><h3>Background items</h3><p>The updaters and helpers other apps leave running, such as Google's updater, each switched off on its own.</p></div>
-        <div><h3>Storage</h3><p>Old macOS installers, aerial wallpaper videos, iPhone update files, Xcode leftovers, app caches and Time Machine snapshots, moved to the Trash.</p></div>
+        <div><h3>Apple apps</h3><p>The Music app without the Apple Music store, Books without the Book Store, and the Apple apps you never open out of the Dock.</p></div>
+        <div><h3>Finder</h3><p>Show file extensions, hidden files and the path bar, keep folders on top, stop .DS_Store files on network drives and empty the Trash after 30 days.</p></div>
+        <div><h3>Dock and windows</h3><p>Hide recent apps, drop the auto-hide delay and the bouncing icons, and turn off window animations and the gaps between tiled windows.</p></div>
+        <div><h3>Typing</h3><p>Turn off autocorrect, smart quotes and dashes, the double-space period and automatic capitals, and get key repeat back instead of the accent menu.</p></div>
+        <div><h3>Background items</h3><p>Google's updater and the other helpers apps leave running in the background, each with its own switch.</p></div>
+        <div><h3>Storage</h3><p>Old macOS installers, aerial wallpaper videos, iPhone update files, Xcode leftovers, app caches and Time Machine snapshots. Files go to the Trash, so you can still change your mind.</p></div>
       </div>
 
       <div class="pair">
         <div class="text">
-          <h3>Each setting says what it does.</h3>
-          <p>Every row explains the change in plain words and warns you when something stops working. Settings with a lock go in one configuration profile that macOS asks you to approve.</p>
+          <h3>What each setting does</h3>
+          <p>Each row says what the setting changes and warns you when something stops working, like games that need Game Center. Settings with a lock go into one configuration profile, and macOS asks you to approve it.</p>
         </div>
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="screens/privacy-dark.webp">
@@ -308,8 +306,8 @@
 
       <div class="pair flip">
         <div class="text">
-          <h3>Nothing changes until you've seen it.</h3>
-          <p>Review lists every change, with the exact command behind it. Undo puts each setting back to the value it had before, and removing the profile undoes everything it locked.</p>
+          <h3>Review before anything changes</h3>
+          <p>The review sheet lists every change and the exact command behind it. Undo restores the value each setting had before, and removing the profile undoes everything it locked.</p>
         </div>
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="screens/review-dark.webp">
@@ -319,8 +317,7 @@
     </section>
 
     <section>
-      <p class="kicker">How it works</p>
-      <h2>No hacks, nothing it can't undo.</h2>
+      <h2>How it works</h2>
       <div class="limits">
         <div class="limit">
           <h3>System Integrity Protection stays on</h3>
@@ -331,15 +328,14 @@
           <p>They live on the sealed system volume, and removing them risks a Mac that won't start. RemoveMacAI quiets them instead and removes the optional apps Apple lets you delete.</p>
         </div>
         <div class="limit">
-          <h3>No phoning home</h3>
+          <h3>No data collection</h3>
           <p>RemoveMacAI makes no network requests and collects no data. The source is on GitHub, and every release is built from its tag with a provenance attestation.</p>
         </div>
       </div>
     </section>
 
     <section id="install">
-      <p class="kicker">Install</p>
-      <h2>Install it your way.</h2>
+      <h2>Install</h2>
       <div class="install">
         <div class="way">
           <h3>The app</h3>
@@ -357,7 +353,7 @@
         <div class="way">
           <h3>Command line</h3>
           <div>
-            <p>The same program without the app. This runs it once from a temporary folder and installs nothing.</p>
+            <p>The same program, without the app. This command runs it once from a temporary folder and installs nothing.</p>
             <div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash</code><button class="copy" type="button">Copy</button></div>
           </div>
         </div>
