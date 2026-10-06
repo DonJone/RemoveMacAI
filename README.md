@@ -2,6 +2,10 @@
   <img src="docs/hero.png" alt="RemoveMacAI" width="840">
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/275773?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-275773" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/omlahore/omlahore/main/profile/trendshift-daily.svg" alt="omlahore%2FRemoveMacAI | Trendshift" width="250" height="55"/></a> <a href="https://trendshift.io/repositories/275773?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-275773" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/omlahore/omlahore/main/profile/trendshift-weekly.svg" alt="omlahore%2FRemoveMacAI | Trendshift" width="250" height="55"/></a>
+</p>
+
 # RemoveMacAI
 
 Turn off Apple Intelligence on macOS 27 and remove its downloaded models.
@@ -10,7 +14,7 @@ Built on [pared](https://github.com/4evy/pared) by 4evy, who did the hard work f
 
 macOS 27 no longer has a single switch for Apple Intelligence, and its models stay on disk after the features are turned off. RemoveMacAI turns the features off, removes the models and prevents macOS from downloading them again. All changes can be reverted.
 
-[MacRumors](https://www.macrumors.com/2026/10/05/apple-intelligence-removal-tool-frees-mac-storage/), [AppleInsider](https://appleinsider.com/articles/26/10/05/dumb-down-your-mac-save-12gb-by-removing-apple-intelligence) and [Help Net Security](https://www.helpnetsecurity.com/2026/10/05/removemacai-turn-off-apple-intelligence/) have written about RemoveMacAI.
+[Ars Technica](https://arstechnica.com/apple/2026/10/command-line-tool-quickly-removes-apple-intelligence-from-macos-27/), [MacRumors](https://www.macrumors.com/2026/10/05/apple-intelligence-removal-tool-frees-mac-storage/), [AppleInsider](https://appleinsider.com/articles/26/10/05/dumb-down-your-mac-save-12gb-by-removing-apple-intelligence) and [Help Net Security](https://www.helpnetsecurity.com/2026/10/05/removemacai-turn-off-apple-intelligence/) have written about RemoveMacAI, and [Daring Fireball](https://daringfireball.net/linked/2026/10/06/cli-tool-removes-apple-intelligence-from-macos-27) linked to it.
 
 <p align="center">
   <img src="docs/terminal.gif" alt="RemoveMacAI turning off Apple Intelligence" width="840">
