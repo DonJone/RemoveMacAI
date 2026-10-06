@@ -20,6 +20,8 @@ macOS 27 no longer has a single switch for Apple Intelligence, and its models st
 
 ## Install
 
+Open Terminal (Applications > Utilities), paste this line and press Return:
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash
 ```
