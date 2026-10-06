@@ -1,5 +1,5 @@
 #!/bin/bash
-# RemoveMacAI: turn Apple Intelligence off on macOS and delete its models.
+# RemoveMacAI: debloat macOS, starting with Apple Intelligence and its models.
 #
 #   curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash
 #
@@ -9,6 +9,10 @@
 #
 # It downloads the latest release, checks its SHA-256, runs it from a temporary
 # folder and deletes it afterwards. Nothing is installed.
+#
+# To install the app in Applications instead and open it:
+#
+#   curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash -s app
 set -euo pipefail
 
 self="curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash"
@@ -27,14 +31,32 @@ fi
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-curl -fsSL "$base/$asset" -o "$tmp/$asset"
-curl -fsSL "$base/$asset.sha256" -o "$tmp/$asset.sha256"
-expected="$(awk '{print $1}' "$tmp/$asset.sha256")"
-actual="$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')"
-if [ "$expected" != "$actual" ]; then
-  echo "The download does not match its checksum, so it was not run." >&2
-  exit 1
+# Downloads a release file and its checksum, and stops unless they match.
+fetch() {
+  curl -fsSL "$base/$1" -o "$tmp/$1"
+  curl -fsSL "$base/$1.sha256" -o "$tmp/$1.sha256"
+  expected="$(awk '{print $1}' "$tmp/$1.sha256")"
+  actual="$(shasum -a 256 "$tmp/$1" | awk '{print $1}')"
+  if [ "$expected" != "$actual" ]; then
+    echo "The download does not match its checksum, so it was not used." >&2
+    exit 1
+  fi
+}
+
+if [ "${1:-}" = "app" ]; then
+  fetch RemoveMacAI.zip
+  ditto -x -k "$tmp/RemoveMacAI.zip" "$tmp/app"
+  dest="/Applications"
+  [ -w "$dest" ] || dest="$HOME/Applications"
+  mkdir -p "$dest"
+  rm -rf "$dest/RemoveMacAI.app"
+  ditto "$tmp/app/RemoveMacAI.app" "$dest/RemoveMacAI.app"
+  echo "Installed $dest/RemoveMacAI.app"
+  open "$dest/RemoveMacAI.app"
+  exit 0
 fi
+
+fetch "$asset"
 tar -xzf "$tmp/$asset" -C "$tmp"
 
 export REMOVEMACAI_UNDO="$self -s revert"

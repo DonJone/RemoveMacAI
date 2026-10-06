@@ -162,7 +162,7 @@ enum Settings {
   static func lockedByProfile(_ feature: Feature) -> Bool {
     guard feature.restrictions.isEmpty, feature.preferences.isEmpty else { return false }
     let profile = Profile.installed()
-    return profile.on && !profile.kept.contains(feature.id)
+    return profile.on && profile.ai && !profile.kept.contains(feature.id)
   }
 
   static func isForced(_ domain: String, _ key: String, value: Bool) -> Bool {

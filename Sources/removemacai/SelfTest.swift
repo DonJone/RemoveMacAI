@@ -138,7 +138,7 @@ func selfTest() -> Bool {
   }
 
   do {
-    let plist = try PropertyListSerialization.propertyList(from: Profile.data(keeping: []), format: nil)
+    let plist = try PropertyListSerialization.propertyList(from: Profile.data(Profile.Contents(ai: [], tweaks: [])), format: nil)
       as! [String: Any]
     let payloads = plist["PayloadContent"] as! [[String: Any]]
     let restrictions = payloads.first { $0["PayloadType"] as? String == "com.apple.applicationaccess" }!
@@ -153,13 +153,70 @@ func selfTest() -> Bool {
     check(Set(uuids).count == uuids.count && Profile.uuid("a") == Profile.uuid("a"),
       "payload UUIDs are unique and stable")
 
-    let keep = try PropertyListSerialization.propertyList(from: Profile.data(keeping: ["writing-tools"]), format: nil)
+    let keep = try PropertyListSerialization.propertyList(from: Profile.data(Profile.Contents(ai: ["writing-tools"], tweaks: [])), format: nil)
       as! [String: Any]
     let kr = (keep["PayloadContent"] as! [[String: Any]]).first { $0["PayloadType"] as? String == "com.apple.applicationaccess" }!
     check(kr["allowWritingTools"] == nil && kr["allowGenmoji"] as? Bool == false, "a kept feature is left alone")
   } catch {
     check(false, "the profile builds: \(error)")
   }
+  // The debloater catalog.
+  check(Set(Tweaks.all.map(\.id)).count == Tweaks.all.count, "tweak names are unique")
+  let changeKeys = Tweaks.all.flatMap { $0.changes.map(\.key) }
+  check(Set(changeKeys).count == changeKeys.count, "no two tweaks change the same setting")
+  check(Tweaks.all.allSatisfy { !$0.changes.isEmpty && ($0.changes.allSatisfy(\.inProfile) || !$0.inProfile) },
+    "a tweak is either all profile or all local")
+  // Restriction keys Apple only accepts from an MDM server; one of these
+  // makes macOS reject the whole profile (device-management Release-v27.0).
+  let mdmOnly: Set<String> = [
+    "allowedExternalIntelligenceWorkspaceIDs", "allowRosettaUsageAwareness", "allowSafariHistoryClearing",
+    "allowSafariPrivateBrowsing", "forceBypassScreenCaptureAlert",
+  ]
+  let profileKeys = Tweaks.all.flatMap(\.changes).compactMap { c -> String? in
+    if case .restriction(let k) = c { return k } else { return nil }
+  } + Catalog.features.flatMap(\.restrictions)
+  check(mdmOnly.isDisjoint(with: profileKeys), "the profile uses no key that needs an MDM server")
+  check(Set(Tweaks.preset(.recommended).map(\.id)).isSubset(of: Set(Tweaks.preset(.privacy).map(\.id))),
+    "maximum privacy includes everything in recommended")
+  check(Set(Tweaks.all.map(\.id)).isDisjoint(with: Set(Catalog.features.map(\.id))),
+    "tweak names don't clash with Apple Intelligence feature names")
+  check(PlistValue.bool(true).matches(1 as NSNumber) && PlistValue.bool(false).matches(0 as NSNumber)
+    && !PlistValue.bool(true).matches(0 as NSNumber) && PlistValue.int(2).matches(2 as NSNumber)
+    && PlistValue.double(0).matches(0 as NSNumber) && !PlistValue.string("SCcf").matches(nil),
+    "stored values match whether they were written as bools or numbers")
+  check(PlistValue(kCFBooleanTrue) == .bool(true) && PlistValue(3 as NSNumber) == .int(3)
+    && PlistValue(0.5 as NSNumber) == .double(0.5) && PlistValue("a" as NSString) == .string("a"),
+    "stored values keep their types")
+  check(Change.pref("com.apple.dock", "autohide-delay", .double(0)).command
+    == "defaults write com.apple.dock \"autohide-delay\" -float 0.0", "commands are shown as defaults would take them")
+
+  do {
+    let contents = Profile.Contents(ai: nil, tweaks: ["analytics", "lookup-suggestions"])
+    let plist = try PropertyListSerialization.propertyList(from: Profile.data(contents), format: nil) as! [String: Any]
+    let payloads = plist["PayloadContent"] as! [[String: Any]]
+    let restrictions = payloads.first { $0["PayloadType"] as? String == "com.apple.applicationaccess" }
+    check(restrictions?["allowDiagnosticSubmission"] as? Bool == false && restrictions?["allowWritingTools"] == nil,
+      "a tweak-only profile restricts the tweaks and leaves Apple Intelligence alone")
+    check(!payloads.contains { ($0["PayloadIdentifier"] as? String)?.hasSuffix(".com.apple.MobileAsset") == true },
+      "a tweak-only profile blocks no model downloads")
+    let marker = payloads.first { ($0["PayloadIdentifier"] as? String)?.hasSuffix(".preferences.\(Profile.identifier)") == true }
+    let markerSettings = ((marker?["PayloadContent"] as? [String: Any])?[Profile.identifier] as? [String: Any])
+      .flatMap { ($0["Forced"] as? [[String: Any]])?.first?["mcx_preference_settings"] as? [String: Any] }
+    check(markerSettings?["ai"] as? Bool == false && markerSettings?["tweaks"] as? String == "analytics,lookup-suggestions",
+      "the profile records which tweaks it holds")
+    let lookup = payloads.first { ($0["PayloadIdentifier"] as? String)?.hasSuffix(".com.apple.lookup.shared") == true }
+    check(lookup != nil, "forced tweak preferences are in the profile")
+  } catch {
+    check(false, "the tweak profile builds: \(error)")
+  }
+
+  check(Storage.uniqueName("a.app", in: "/nonexistent-folder") == "a.app", "trash names stay as they are when free")
+  let script = BackgroundItem(label: "com.example.sync", plist: "", program: "/bin/bash",
+    arguments: ["/bin/bash", "/Users/x/bin/sync.sh"], system: false)
+  let helper = BackgroundItem(label: "dev.orbstack.OrbStack.privhelper", plist: "",
+    program: "/Library/PrivilegedHelperTools/dev.orbstack.OrbStack.privhelper", system: true)
+  check(script.owner == "sync.sh" && helper.owner == "OrbStack", "background items are named after what they run")
+
   print(failed == 0 ? Term.green("all checks passed") : Term.red("\(failed) failed"))
   return failed == 0
 }

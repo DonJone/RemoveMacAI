@@ -1,8 +1,10 @@
+import AppKit
 import CryptoKit
 import Foundation
 
-/// The configuration profile that switches the features off and stops macOS
-/// downloading the removed models again. Removing the profile undoes all of it.
+/// The configuration profile that holds every locked setting: Apple
+/// Intelligence, the download block for removed models, and the profile
+/// tweaks. Removing the profile undoes all of it.
 enum Profile {
   static let identifier = "io.github.omlahore.removemacai"
   static let file = FileManager.default.homeDirectoryForCurrentUser
@@ -16,26 +18,48 @@ enum Profile {
 
   static func downloadKey(_ set: ModelSet) -> String { downloadKeyPrefix + set.assetType }
 
-  static func data(keeping kept: Set<String>) throws -> Data {
-    let off = Catalog.features.filter { !kept.contains($0.id) }
-    var restrictions = payload(
-      type: "com.apple.applicationaccess", suffix: "restrictions",
-      name: "Apple Intelligence restrictions")
-    for feature in off {
-      for key in feature.restrictions { restrictions[key] = false }
-    }
+  /// What the profile contains: Apple Intelligence off except the kept
+  /// features (nil leaves Apple Intelligence alone), and the profile tweaks.
+  struct Contents: Equatable {
+    var ai: Set<String>?
+    var tweaks: Set<String>
 
+    var isEmpty: Bool { ai == nil && tweaks.isEmpty }
+  }
+
+  static func data(keeping kept: Set<String>) throws -> Data {
+    try data(Contents(ai: kept, tweaks: installed().tweaks))
+  }
+
+  static func data(_ contents: Contents) throws -> Data {
+    var restrictions = payload(
+      type: "com.apple.applicationaccess", suffix: "restrictions", name: "Restrictions")
     var forced: [String: [String: Any]] = [:]
-    for feature in off {
-      for pref in feature.preferences { forced[pref.domain, default: [:]][pref.key] = pref.off }
+
+    if let kept = contents.ai {
+      for feature in Catalog.features where !kept.contains(feature.id) {
+        for key in feature.restrictions { restrictions[key] = false }
+        for pref in feature.preferences { forced[pref.domain, default: [:]][pref.key] = pref.off }
+      }
+      for name in Catalog.setsToRemove(keeping: kept) {
+        guard let set = Catalog.modelSet(name) else { continue }
+        forced[downloadDomain, default: [:]][downloadKey(set)] = blockedURL
+      }
     }
-    for name in Catalog.setsToRemove(keeping: kept) {
-      guard let set = Catalog.modelSet(name) else { continue }
-      forced[downloadDomain, default: [:]][downloadKey(set)] = blockedURL
+    for tweak in Tweaks.all where contents.tweaks.contains(tweak.id) {
+      for change in tweak.changes {
+        switch change {
+        case .restriction(let key): restrictions[key] = false
+        case .forced(let domain, let key, let value): forced[domain, default: [:]][key] = value.object
+        default: break
+        }
+      }
     }
     // A marker of our own, so status can tell the profile is in force and
     // what it was made with.
-    forced[identifier] = ["installed": true, "kept": kept.sorted().joined(separator: ",")]
+    var marker: [String: Any] = ["installed": true, "ai": contents.ai != nil, "tweaks": contents.tweaks.sorted().joined(separator: ",")]
+    marker["kept"] = (contents.ai ?? []).sorted().joined(separator: ",")
+    forced[identifier] = marker
     let preferences = forced.keys.sorted().map { domain -> [String: Any] in
       var p = payload(
         type: "com.apple.ManagedClient.preferences", suffix: "preferences." + domain,
@@ -51,12 +75,13 @@ enum Profile {
       "PayloadUUID": uuid(identifier),
       "PayloadDisplayName": "RemoveMacAI",
       "PayloadDescription":
-        "Turns Apple Intelligence off and stops its models downloading again. Remove this profile to undo.",
+        "Turns off Apple Intelligence and the settings chosen in RemoveMacAI, and stops removed models downloading again. Remove this profile to undo.",
       "PayloadOrganization": "RemoveMacAI",
       "PayloadScope": "System",
       "PayloadRemovalDisallowed": false,
     ]
-    profile["PayloadContent"] = [restrictions] + preferences
+    let hasRestrictions = restrictions.keys.contains { $0.hasPrefix("allow") }
+    profile["PayloadContent"] = (hasRestrictions ? [restrictions] : []) + preferences
     return try PropertyListSerialization.data(fromPropertyList: profile, format: .xml, options: 0)
   }
 
@@ -78,12 +103,35 @@ enum Profile {
       bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15])).uuidString
   }
 
-  /// Whether our profile is in force, and the features it was told to keep.
-  static func installed() -> (on: Bool, kept: Set<String>) {
+  struct Installed {
+    var on = false
+    /// Whether the profile turns Apple Intelligence off. Profiles from
+    /// before 1.0 only did that, so a missing flag means yes.
+    var ai = false
+    var kept: Set<String> = []
+    var tweaks: Set<String> = []
+
+    var contents: Contents? { on ? Contents(ai: ai ? kept : nil, tweaks: tweaks) : nil }
+  }
+
+  /// Whether our profile is in force, and what it holds.
+  static func installed() -> Installed {
     let domain = identifier as CFString
     CFPreferencesAppSynchronize(domain)
-    guard CFPreferencesAppValueIsForced("installed" as CFString, domain) else { return (false, []) }
-    let kept = CFPreferencesCopyAppValue("kept" as CFString, domain) as? String ?? ""
-    return (true, Set(kept.split(separator: ",").map(String.init)))
+    guard CFPreferencesAppValueIsForced("installed" as CFString, domain) else { return Installed() }
+    func list(_ key: String) -> Set<String> {
+      let s = CFPreferencesCopyAppValue(key as CFString, domain) as? String ?? ""
+      return Set(s.split(separator: ",").map(String.init))
+    }
+    let ai = CFPreferencesCopyAppValue("ai" as CFString, domain) as? Bool ?? true
+    return Installed(on: true, ai: ai, kept: list("kept"), tweaks: list("tweaks"))
   }
+
+  /// Writes the profile and opens it, so System Settings shows it for approval.
+  static func present(_ contents: Contents) throws {
+    try data(contents).write(to: file)
+    NSWorkspace.shared.open(file)
+  }
+
+  static func matches(_ contents: Contents) -> Bool { installed().contents == contents }
 }

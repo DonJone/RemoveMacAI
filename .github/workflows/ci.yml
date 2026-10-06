@@ -10,10 +10,12 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Build
         run: swift build -c release --arch arm64
       - name: Self-test
         run: "$(swift build -c release --arch arm64 --show-bin-path)/removemacai selftest"
+      - name: App bundle
+        run: tools/build-app.sh
