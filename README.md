@@ -28,6 +28,17 @@ curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.s
 
 The script downloads the latest release, verifies its SHA-256 checksum and runs it from a temporary directory. Nothing is installed.
 
+To skip the script, download `removemacai-darwin-arm64.tar.gz` and its `.sha256` file from the [latest release](https://github.com/omlahore/RemoveMacAI/releases/latest), then run this in the folder you saved them to:
+
+```sh
+shasum -a 256 -c removemacai-darwin-arm64.tar.gz.sha256
+tar xzf removemacai-darwin-arm64.tar.gz
+xattr -d com.apple.quarantine removemacai
+./removemacai
+```
+
+The binary is ad-hoc signed but not notarized, so macOS won't run a copy downloaded through a browser until the quarantine flag is removed.
+
 Every release is built from its tag by GitHub Actions and carries a build provenance attestation. To check that a download came from this repository's source:
 
 ```sh
