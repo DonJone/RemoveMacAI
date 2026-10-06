@@ -25,7 +25,11 @@
         }
         if ProcessInfo.processInfo.environment["REMOVEMACAI_SNAPSHOTS_REVIEW"] != nil {
           model.page = .overview
-          model.choose(.recommended)
+          model.choose(.privacy)
+          // Tweaks to show as pending, so the review sheet has something to list on a debloated Mac.
+          for id in (ProcessInfo.processInfo.environment["REMOVEMACAI_SNAPSHOTS_PENDING"] ?? "").split(separator: ",") {
+            if let t = Tweaks.tweak(String(id)) { model.toggle(t, true) }
+          }
           try? await Task.sleep(nanoseconds: 800_000_000)
           save("pending", dir)
           model.reviewing = true
