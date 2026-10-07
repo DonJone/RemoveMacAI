@@ -341,6 +341,8 @@ struct StorageView: View {
   }
   private var confirmingBinding: SwiftUI.Binding<Bool> { _confirming.projectedValue }
 
+  init() {}
+
   var body: some View {
     Form {
       if !model.scanned {
@@ -432,6 +434,8 @@ struct ChangesView: View {
     nonmutating set { _confirming.wrappedValue = newValue }
   }
   private var confirmingBinding: SwiftUI.Binding<Bool> { _confirming.projectedValue }
+
+  init() {}
 
   var body: some View {
     Form {

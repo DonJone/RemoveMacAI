@@ -9,6 +9,8 @@ struct RemoveMacAIApp: App {
     nonmutating set { _model.wrappedValue = newValue }
   }
 
+  init() {}
+
   var body: some Scene {
     Window("RemoveMacAI", id: "main") {
       ContentView()

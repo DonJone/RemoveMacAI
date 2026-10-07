@@ -101,6 +101,8 @@ struct ReviewSheet: View {
     nonmutating set { _plan.wrappedValue = newValue }
   }
 
+  init() {}
+
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       VStack(alignment: .leading, spacing: 4) {
@@ -199,6 +201,11 @@ struct ChangeRow: View {
   let adding: Bool
   private var _expanded = SwiftUI.State(initialValue: false)
   private var expandedBinding: SwiftUI.Binding<Bool> { _expanded.projectedValue }
+
+  init(tweak: Tweak, adding: Bool) {
+    self.tweak = tweak
+    self.adding = adding
+  }
 
   var body: some View {
     DisclosureGroup(isExpanded: expandedBinding) {
