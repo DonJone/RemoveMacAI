@@ -1,22 +1,22 @@
 #!/bin/bash
 # RemoveMacAI: debloat macOS, starting with Apple Intelligence and its models.
 #
-#   curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/DonJone/RemoveMacAI/main/install.sh | bash
 #
 # Undo everything later with the same line plus "-s revert":
 #
-#   curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash -s revert
+#   curl -fsSL https://raw.githubusercontent.com/DonJone/RemoveMacAI/main/install.sh | bash -s revert
 #
 # It downloads the latest release, checks its SHA-256, runs it from a temporary
 # folder and deletes it afterwards. Nothing is installed.
 #
 # To install the app in Applications instead and open it:
 #
-#   curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash -s app
+#   curl -fsSL https://raw.githubusercontent.com/DonJone/RemoveMacAI/main/install.sh | bash -s app
 set -euo pipefail
 
-self="curl -fsSL https://raw.githubusercontent.com/omlahore/RemoveMacAI/main/install.sh | bash"
-base="${REMOVEMACAI_URL:-https://github.com/omlahore/RemoveMacAI/releases/latest/download}"
+self="curl -fsSL https://raw.githubusercontent.com/DonJone/RemoveMacAI/main/install.sh | bash"
+base="${REMOVEMACAI_URL:-https://github.com/DonJone/RemoveMacAI/releases/latest/download}"
 asset="removemacai-darwin-arm64.tar.gz"
 
 if [ "$(uname -s)" != "Darwin" ]; then
