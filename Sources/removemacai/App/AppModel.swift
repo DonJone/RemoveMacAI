@@ -7,12 +7,12 @@ enum Page: Hashable {
 
   var title: String {
     switch self {
-    case .overview: return "Overview"
+    case .overview: return L10n.s("Overview", "系统概览")
     case .intelligence: return "Apple Intelligence"
     case .group(let g): return g.title
-    case .background: return "Background Items"
-    case .storage: return "Storage"
-    case .changes: return "Undo"
+    case .background: return L10n.s("Background Items", "后台启动项")
+    case .storage: return L10n.s("Storage", "空间清理")
+    case .changes: return L10n.s("Undo", "更改与还原")
     }
   }
 
@@ -187,7 +187,7 @@ final class AppModel {
       }
       // Models only go once the profile blocks their download.
       if !plan.models.isEmpty && Profile.installed().ai {
-        await MainActor.run { self.run = .working("Deleting Apple Intelligence models") }
+        await MainActor.run { self.run = .working(L10n.s("Deleting Apple Intelligence models", "正在清理 Apple Intelligence 模型...")) }
         let result = Self.deleteModels(plan.models)
         problems += result.problems
         freed = result.freed ?? (before > 0 ? before : nil)
@@ -201,19 +201,19 @@ final class AppModel {
   }
 
   nonisolated static func deleteModels(_ sets: [String]) -> (problems: [String], freed: Int64?) {
-    guard Models.available() else { return (["Apple's asset service didn't answer, so the models stay for now."], nil) }
+    guard Models.available() else { return ([L10n.s("Apple's asset service didn't answer, so the models stay for now.", "Apple 资产服务未响应，模型暂时保留。")], nil) }
     var problems: [String] = []
     var removing = sets
     do {
       let split = try Models.matching(sets)
       removing = split.matched
-      problems += split.skipped.map { "\(Catalog.modelSet($0.0)?.title ?? $0.0) stayed: \($0.1)" }
+      problems += split.skipped.map { "\(Catalog.modelSet($0.0)?.title ?? $0.0) " + L10n.s("stayed: ", "已保留：") + "\($0.1)" }
     } catch { return (["\(error)"], nil) }
     let before = Models.total(removing)
     do {
       let result = try Commands.removeModels(removing, before: before)
       problems += result.failures.map { "\(Catalog.modelSet($0.0)?.title ?? $0.0): \($0.1)" }
-      if !result.verified { problems.append("Removal couldn't be confirmed yet. Check again in a minute.") }
+      if !result.verified { problems.append(L10n.s("Removal couldn't be confirmed yet. Check again in a minute.", "模型删除尚未能即时确认，请稍后刷新查看。")) }
       return (problems, result.deletedBytes)
     } catch {
       return (problems + ["\(error)"], nil)
@@ -236,7 +236,7 @@ final class AppModel {
   /// Deletes models left on disk while Apple Intelligence is already off.
   func deleteLeftoverModels() {
     guard let kept = currentAI else { return }
-    run = .working("Deleting Apple Intelligence models")
+    run = .working(L10n.s("Deleting Apple Intelligence models", "正在清理 Apple Intelligence 模型..."))
     Task.detached(priority: .userInitiated) {
       let sets = Catalog.setsToRemove(keeping: kept).filter { Models.present($0) }
       let result = Self.deleteModels(sets)
@@ -253,7 +253,7 @@ final class AppModel {
   // MARK: undo
 
   func undoEverything() {
-    run = .working("Undoing changes")
+    run = .working(L10n.s("Undoing changes", "正在还原各项设置..."))
     cancelWait = false
     Task.detached(priority: .userInitiated) {
       var problems = Engine.revertAll()
@@ -263,7 +263,9 @@ final class AppModel {
           Commands.openProfileSettings()
         }
         if !(await self.waitFor { !Profile.installed().on }) {
-          problems.append("The profile is still installed. Remove RemoveMacAI in System Settings > General > Device Management.")
+          problems.append(L10n.s(
+            "The profile is still installed. Remove RemoveMacAI in System Settings > General > Device Management.",
+            "描述文件仍处于安装状态。请前往“系统设置 > 通用 > 设备管理”中移除 RemoveMacAI。"))
         }
       }
       let outcome = RunState.finished(problems: problems, freed: nil)
@@ -315,9 +317,13 @@ final class AppModel {
       let result = Storage.clean(chosen)
       let items = Storage.scan()
       let left = items.filter { chosen.map(\.id).contains($0.id) }.reduce(Int64(0)) { $0 + $1.bytes }
-      var message = "Moved \(Term.size(max(0, total - left))) to the Trash. Empty the Trash to free the space."
+      var message = L10n.s(
+        "Moved \(Term.size(max(0, total - left))) to the Trash. Empty the Trash to free the space.",
+        "已将 \(Term.size(max(0, total - left))) 移至废纸篓。清倒废纸篓即可释放存储空间。")
       if result.protected > 0 {
-        message += " \(result.protected) item\(result.protected == 1 ? "" : "s") macOS protects stayed where \(result.protected == 1 ? "it was" : "they were")."
+        message += L10n.s(
+          " \(result.protected) item\(result.protected == 1 ? "" : "s") macOS protects stayed where \(result.protected == 1 ? "it was" : "they were").",
+          " 受系统完整性保护的 \(result.protected) 个项目已保留在原位。")
       }
       if !result.problems.isEmpty { message += "\n" + result.problems.joined(separator: "\n") }
       let finalMessage = message

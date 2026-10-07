@@ -67,7 +67,10 @@ func selfTest() -> Bool {
   check(!FeatureState.unknown.isOff && !FeatureState.on.isOff
     && FeatureState.off.isOff && FeatureState.lockedOff.isOff,
     "unknown feature states do not count as off")
-  check(Commands.modelSize(nil).contains("unknown") && Commands.modelSize(0).contains("none")
+  let nilLabel = Commands.modelSize(nil)
+  let zeroLabel = Commands.modelSize(0)
+  check((nilLabel.contains("unknown") || nilLabel.contains("未知"))
+    && (zeroLabel.contains("none") || zeroLabel.contains("无占用"))
     && Commands.modelSize(1024).contains(Term.size(1024)),
     "model size labels distinguish unknown, empty and downloaded")
 

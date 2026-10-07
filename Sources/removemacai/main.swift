@@ -1,6 +1,7 @@
 import Foundation
 
-let usage = """
+var usageEN: String {
+  """
   RemoveMacAI \(version)
   Debloats macOS: turns Apple Intelligence off, deletes its models, and turns
   off analytics, ads and the rest. Every change can be undone.
@@ -31,6 +32,43 @@ let usage = """
     removemacai app             open the RemoveMacAI app
 
   """
+}
+
+var usageZH: String {
+  """
+  RemoveMacAI \(version)
+  macOS 系统去臃肿与优化：彻底关闭 Apple Intelligence 并清理模型，
+  禁用系统分析与广告，精简弹窗与冗余项。所有更改均可完全撤销。
+
+  Apple Intelligence (人工智能)
+    removemacai                 显示当前状态并确认关闭 (需确认)
+    removemacai status          查看各特性状态与本地模型磁盘占用
+    removemacai off [选项]       直接关闭 Apple Intelligence
+        --keep a,b              保持指定特性开启 (列表见: removemacai features)
+        --dry-run               演练模式，仅展示拟修改项，不作实际更改
+        --yes                   自动确认，跳过交互提示
+    removemacai on              重新开启 Apple Intelligence，保留其他优化
+    removemacai features        列出所有受支持的 AI 功能名称
+
+  Debloat (系统瘦身与优化)
+    removemacai tweaks [--json]           列出所有可调整项及当前状态
+    removemacai apply <名称> [选项]       应用指定的优化项
+        --preset recommended|privacy      应用预设方案（包含彻底关闭 Apple Intelligence）
+        --dry-run, --yes
+    removemacai undo <名称>               还原指定的优化项
+    removemacai background [off|on <标签>]
+                                          管理第三方应用的后台开机自启项
+    removemacai clean [<名称>]            检查可释放的存储空间，将指定项移至废纸篓
+    removemacai export <配置文件.mobileconfig> [--preset p] [<名称>] [--keep a,b] [--no-ai]
+                                          导出供 MDM 批量部署使用的配置描述文件
+
+    removemacai revert          完全还原 RemoveMacAI 作出的所有修改
+    removemacai app             启动 RemoveMacAI 图形界面应用程序
+
+  """
+}
+
+var usage: String { L10n.isChinese ? usageZH : usageEN }
 
 var args = Array(CommandLine.arguments.dropFirst())
 func flag(_ name: String) -> Bool {
@@ -47,7 +85,7 @@ func option(_ name: String) -> String? {
 func presetOption() -> Preset? {
   guard let name = option("--preset") else { return nil }
   guard let preset = Preset(rawValue: name) else {
-    Term.fail("there is no preset called \"\(name)\". Use recommended or privacy")
+    Term.fail(L10n.s("there is no preset called \"\(name)\". Use recommended or privacy", "不存在名为 \"\(name)\" 的预设。请使用 recommended 或 privacy"))
   }
   return preset
 }
@@ -55,7 +93,7 @@ func presetOption() -> Preset? {
 // Opened from Finder: the app. With arguments, or from a bare binary: the CLI.
 if args.isEmpty && Bundle.main.bundleURL.pathExtension == "app" || args.first == "app" {
   guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else {
-    Term.fail("RemoveMacAI needs macOS 26 or newer")
+    Term.fail(L10n.s("RemoveMacAI needs macOS 26 or newer", "RemoveMacAI 需要 macOS 26 或更高版本"))
   }
   Shell.inApp = true
   RemoveMacAIApp.main()
@@ -63,7 +101,7 @@ if args.isEmpty && Bundle.main.bundleURL.pathExtension == "app" || args.first ==
 }
 
 guard args.first == "selftest" || ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26 else {
-  Term.fail("RemoveMacAI needs macOS 26 or newer")
+  Term.fail(L10n.s("RemoveMacAI needs macOS 26 or newer", "RemoveMacAI 需要 macOS 26 或更高版本"))
 }
 
 switch args.first {

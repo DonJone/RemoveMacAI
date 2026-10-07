@@ -3,7 +3,11 @@ import SwiftUI
 
 struct RemoveMacAIApp: App {
   @NSApplicationDelegateAdaptor private var delegate: AppDelegate
-  @State private var model = AppModel()
+  private var _model = SwiftUI.State(initialValue: AppModel())
+  private var model: AppModel {
+    get { _model.wrappedValue }
+    nonmutating set { _model.wrappedValue = newValue }
+  }
 
   var body: some Scene {
     Window("RemoveMacAI", id: "main") {
@@ -15,14 +19,14 @@ struct RemoveMacAIApp: App {
     .commands {
       CommandGroup(replacing: .newItem) {}
       CommandGroup(replacing: .appInfo) {
-        Button("About RemoveMacAI") { AppDelegate.showAbout() }
+        Button(L10n.s("About RemoveMacAI", "关于 RemoveMacAI")) { AppDelegate.showAbout() }
       }
       CommandGroup(after: .toolbar) {
-        Button("Reload") { model.reload(resetChoices: true) }.keyboardShortcut("r")
+        Button(L10n.s("Reload", "重新载入")) { model.reload(resetChoices: true) }.keyboardShortcut("r")
       }
       CommandGroup(replacing: .help) {
-        Link("RemoveMacAI on GitHub", destination: URL(string: "https://github.com/omlahore/RemoveMacAI")!)
-        Link("Report a Problem", destination: URL(string: "https://github.com/omlahore/RemoveMacAI/issues/new/choose")!)
+        Link(L10n.s("RemoveMacAI on GitHub", "RemoveMacAI 的 GitHub 仓库"), destination: URL(string: "https://github.com/omlahore/RemoveMacAI")!)
+        Link(L10n.s("Report a Problem", "报告问题 / 建议"), destination: URL(string: "https://github.com/omlahore/RemoveMacAI/issues/new/choose")!)
       }
     }
   }
@@ -42,7 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   static func showAbout() {
     let credits = NSMutableAttributedString(
-      string: "Debloats macOS and can undo every change.\n\nThe Apple Intelligence part builds on pared by 4evy, which first mapped Apple's asset service and model sets.",
+      string: L10n.s(
+        "Debloats macOS and can undo every change.\n\nThe Apple Intelligence part builds on pared by 4evy, which first mapped Apple's asset service and model sets.",
+        "为 macOS 瘦身净化，支持随时无损还原每一项更改。\n\nApple Intelligence 移除部分基于 4evy 的 pared 项目构建，率先映射了 Apple 资源服务和模型资产集合。"
+      ),
       attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
     NSApp.orderFrontStandardAboutPanel(options: [
       .applicationName: "RemoveMacAI",

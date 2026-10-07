@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- 针对 macOS 简体中文环境进行全局双语本地化适配（CLI 命令行与 GUI 界面）。
+- 新增环境变量 `REMOVEMACAI_LANG` 支持快速切换/锁定中英文展示。
+- 修复 macOS 27 环境下 Swift 宏相关构建兼容性。
+- 完善模型占用标签与单元自检测试兼容性。
+
 ## 1.0.0
 
 RemoveMacAI is now a debloater for macOS, with a native app. Apple Intelligence works as before and is one part of it.

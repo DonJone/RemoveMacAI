@@ -45,39 +45,46 @@ enum Storage {
     let wallpaper = home + "/Library/Application Support/com.apple.wallpaper"
     let aerialsInUse = plistText(wallpaper + "/Store/Index.plist").contains("aerial")
     items.append(files(
-      id: "aerials", title: "Aerial wallpaper videos",
-      detail: "Videos for the moving aerial wallpapers and screen savers. macOS downloads one again when you choose it.",
-      caveat: aerialsInUse ? "You use an aerial wallpaper or screen saver now, so macOS will download it again." : nil,
+      id: "aerials",
+      title: L10n.s("Aerial wallpaper videos", "动态航拍墙纸与屏保视频"),
+      detail: L10n.s("Videos for the moving aerial wallpapers and screen savers. macOS downloads one again when you choose it.", "动态航拍墙纸和屏幕保护程序视频。若重新在系统设置中选中，macOS 将按需重新下载。"),
+      caveat: aerialsInUse ? L10n.s("You use an aerial wallpaper or screen saver now, so macOS will download it again.", "当前正在使用航拍动态墙纸或屏保，清理后系统可能会重新触发下载。") : nil,
       paths: children(wallpaper + "/aerials/videos")
         + children("/Library/Application Support/com.apple.idleassetsd/Customer")))
 
     items.append(files(
-      id: "installers", title: "macOS installers",
-      detail: "Old \"Install macOS\" apps left in Applications after an upgrade.",
+      id: "installers",
+      title: L10n.s("macOS installers", "macOS 安装器安装包"),
+      detail: L10n.s("Old \"Install macOS\" apps left in Applications after an upgrade.", "系统升级后残留在“应用程序”目录下的“安装 macOS”旧安装程序。"),
       paths: children("/Applications").filter {
         let name = ($0 as NSString).lastPathComponent
         return name.hasPrefix("Install macOS") && name.hasSuffix(".app")
       }))
 
     items.append(files(
-      id: "ios-firmware", title: "iPhone and iPad updates",
-      detail: "Software update files Finder downloaded for iPhones and iPads. They download again when needed.",
+      id: "ios-firmware",
+      title: L10n.s("iPhone and iPad updates", "iPhone 与 iPad 固件升级包"),
+      detail: L10n.s("Software update files Finder downloaded for iPhones and iPads. They download again when needed.", "访达下载的 iOS / iPadOS 固件恢复与更新文件（IPSW），必要时会自动重新下载。"),
       paths: children(home + "/Library/iTunes/iPhone Software Updates")
         + children(home + "/Library/iTunes/iPad Software Updates")))
 
     let xcode = home + "/Library/Developer/Xcode"
     items.append(files(
-      id: "derived-data", title: "Xcode build data",
-      detail: "Xcode's DerivedData folder. Xcode rebuilds it on the next build.",
+      id: "derived-data",
+      title: L10n.s("Xcode build data", "Xcode 编译构建缓存 (DerivedData)"),
+      detail: L10n.s("Xcode's DerivedData folder. Xcode rebuilds it on the next build.", "Xcode 的 DerivedData 缓存目录。下次在 Xcode 构建项目时会自动重建。"),
       paths: children(xcode + "/DerivedData")))
     items.append(files(
-      id: "device-support", title: "Xcode device support",
-      detail: "Debug symbols Xcode copied from each iPhone, iPad and Watch you connected. They copy again on the next connection.",
+      id: "device-support",
+      title: L10n.s("Xcode device support", "Xcode 真机调试符号文件"),
+      detail: L10n.s("Debug symbols Xcode copied from each iPhone, iPad and Watch you connected. They copy again on the next connection.", "Xcode 从连接过的每台 iPhone、iPad 和 Apple Watch 拷贝的调试符号，再次连接时会自动同步。"),
       paths: ["iOS", "watchOS", "tvOS", "visionOS"].flatMap { children(xcode + "/\($0) DeviceSupport") }))
 
     var simulators = StorageItem(
-      id: "simulators", title: "Unavailable simulators",
-      detail: "Simulators for runtimes that are no longer installed, so they can't run.", kind: .simulators)
+      id: "simulators",
+      title: L10n.s("Unavailable simulators", "不可用的废弃模拟器运行时"),
+      detail: L10n.s("Simulators for runtimes that are no longer installed, so they can't run.", "对应 SDK 运行时已卸载或失效的模拟器数据，已无法正常运行。"),
+      kind: .simulators)
     let unavailable = unavailableSimulators()
     simulators.paths = unavailable
     simulators.count = unavailable.count
@@ -85,9 +92,10 @@ enum Storage {
     items.append(simulators)
 
     items.append(files(
-      id: "caches", title: "App caches",
-      detail: "Files apps keep to load faster. Apps rebuild them, so the first launch afterwards can be slower.",
-      caveat: "Quit your apps first. Apple's own caches are left alone.",
+      id: "caches",
+      title: L10n.s("App caches", "第三方应用程序缓存"),
+      detail: L10n.s("Files apps keep to load faster. Apps rebuild them, so the first launch afterwards can be slower.", "各应用程序为加快加载所生成的缓存。清理后应用会在下次启动时自动重新生成。"),
+      caveat: L10n.s("Quit your apps first. Apple's own caches are left alone.", "建议清理前先退出相关应用。系统原生应用的核心缓存不会被改动。"),
       paths: children(home + "/Library/Caches").filter { !($0 as NSString).lastPathComponent.hasPrefix("com.apple.") }))
 
     for app in appleApps {
@@ -95,14 +103,16 @@ enum Storage {
       guard FileManager.default.fileExists(atPath: path) else { continue }
       items.append(files(
         id: app.id, title: app.app,
-        detail: "One of Apple's optional apps. It reinstalls free from the App Store.",
+        detail: L10n.s("One of Apple's optional apps. It reinstalls free from the App Store.", "Apple 可选预装应用，日后可随时在 App Store 免费重新下载安装。"),
         paths: [path] + app.extra.filter { FileManager.default.fileExists(atPath: $0) }))
     }
 
     var snapshots = StorageItem(
-      id: "snapshots", title: "Time Machine local snapshots",
-      detail: "Hourly copies Time Machine keeps on this disk between backups. macOS counts them as System Data.",
-      caveat: "Your backups on the backup disk aren't touched.", kind: .snapshots)
+      id: "snapshots",
+      title: L10n.s("Time Machine local snapshots", "时间机器本地快照"),
+      detail: L10n.s("Hourly copies Time Machine keeps on this disk between backups. macOS counts them as System Data.", "时间机器在未连接外置备份盘时保存在本地磁盘上的每小时快照（在系统中计入“系统数据”）。"),
+      caveat: L10n.s("Your backups on the backup disk aren't touched.", "外置备份磁盘中的历史备份文件不会受到任何影响。"),
+      kind: .snapshots)
     snapshots.paths = localSnapshotDates()
     snapshots.count = snapshots.paths.count
     items.append(snapshots)
